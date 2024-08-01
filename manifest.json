@@ -1,6 +1,10 @@
 {
   "name": "Article",
   "description": "Article module",
+  "github": {
+    "user": "MerapiPanel",
+    "repo": "Article"
+  },
   "version": "0.1.0",
   "author": "Il4mb",
   "icon": "./icon.svg"
