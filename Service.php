@@ -4,55 +4,83 @@ namespace MerapiPanel\Module\Article;
 
 use MerapiPanel\Box;
 use MerapiPanel\Box\Module\__Fragment;
+use MerapiPanel\Box\Module\Entity\Module;
 use MerapiPanel\Database\DB;
 use MerapiPanel\Utility\Util;
+use MerapiPanel\Views\View;
 use Monolog\Utils;
 use PDO;
 
 class Service extends __Fragment
 {
 
-
     protected $module;
 
-
-
-    public function onCreate(Box\Module\Entity\Module $module)
+    public function onCreate(Module $module)
     {
         $this->module = $module;
     }
 
+    function onInit()
+    {
+        Box::module("Website")->Pages->listenOn("shortcode", function (&$result, $code) {
+
+            // $singlepg = Box::module("Website")->Pages->getpop("Article/one");
+            // $route = $singlepg['route'];
+
+            // if (!preg_match('/\{(article_slug)\}/m', $route) || !preg_match('/\{(article_id)\}/m', $route)) {
+            //     $route = false;
+            // }
+
+            // if ($code == "article.listpops") {
+            //     $data = $this->fetchAll();
+            //     $result = View::render("shortcode/listpops", ["data" => $data, "route" => $route]);
+            // }
+        });
+    }
+
+
+    function getCheckRouteParams($route, $params = [])
+    {
+        $exist_len = 0;
+        foreach ($params as $param) {
+            if (preg_match('/\{(' . $param . ')\}/m', $route)) {
+                $exist_len++;
+            }
+        }
+        return count($params) == $exist_len;
+    }
 
     function fetchAll(
-		$columns = ["id", "title", "slug", "data", "post_date", "update_date", "users.id as author_id", "users.name as author_name"],
-		$page = null,
-		$limit = null,
-		$search = null,
-	) {
-		// Validate $limit to prevent division by zero
-		if ($limit <= 0) {
-			// Fetch all results if $limit is zero or negative
-			$limit = null;
-		}
+        $columns = ["id", "title", "slug", "data", "post_date", "update_date", "users.id as author_id", "users.name as author_name"],
+        $page = null,
+        $limit = null,
+        $search = null,
+    ) {
+        // Validate $limit to prevent division by zero
+        if ($limit <= 0) {
+            // Fetch all results if $limit is zero or negative
+            $limit = null;
+        }
 
-		// Construct the main SQL query
-		$mainSQL = "SELECT " . implode(",", array_map(function ($item) {
-			if (strpos($item, "users.") === 0) {
-				return str_replace("users.", "B.", $item);
-			}
-			return "A.{$item}";
-		}, $columns)) . " FROM articles A LEFT JOIN users B ON A.author = B.id"
-			. ($search ? " WHERE A.title LIKE '%{$search}%' OR A.description LIKE '%{$search}%' OR B.name LIKE '%{$search}%' " : "")
-			. " ORDER BY A.id DESC";
+        // Construct the main SQL query
+        $mainSQL = "SELECT " . implode(",", array_map(function ($item) {
+            if (strpos($item, "users.") === 0) {
+                return str_replace("users.", "B.", $item);
+            }
+            return "A.{$item}";
+        }, $columns)) . " FROM articles A LEFT JOIN users B ON A.author = B.id"
+            . ($search ? " WHERE A.title LIKE '%{$search}%' OR A.description LIKE '%{$search}%' OR B.name LIKE '%{$search}%' " : "")
+            . " ORDER BY A.id DESC";
 
-		// Construct the count SQL query
-		$countSQL = "SELECT COUNT(*) AS total FROM articles A LEFT JOIN users B ON A.author = B.id"
-			. ($search ? " WHERE A.title LIKE '%{$search}%' OR A.description LIKE '%{$search}%' OR B.name LIKE '%{$search}%' " : "");
+        // Construct the count SQL query
+        $countSQL = "SELECT COUNT(*) AS total FROM articles A LEFT JOIN users B ON A.author = B.id"
+            . ($search ? " WHERE A.title LIKE '%{$search}%' OR A.description LIKE '%{$search}%' OR B.name LIKE '%{$search}%' " : "");
 
-		// Execute the count query to get total results
-		$totalCount = DB::instance()->query($countSQL)->fetchColumn();
+        // Execute the count query to get total results
+        $totalCount = DB::instance()->query($countSQL)->fetchColumn();
 
-        if(!$totalCount) {
+        if (!$totalCount) {
             return [
                 'articles' => [],
                 'totalPages' => 0,
@@ -60,34 +88,38 @@ class Service extends __Fragment
             ];
         }
 
-		// Calculate total pages based on total results and limit per page
-		$totalPages = ($limit > 0) ? ceil($totalCount / $limit) : 0;
+        // Calculate total pages based on total results and limit per page
+        $totalPages = ($limit > 0) ? ceil($totalCount / $limit) : 0;
 
-		// Construct the main SQL query with pagination
-		$offset = ($page - 1) * $limit;
-		$SQL = $mainSQL . ($limit ? " LIMIT $offset, $limit" : "");
+        // Construct the main SQL query with pagination
+        $offset = ($page - 1) * $limit;
+        $SQL = $mainSQL . ($limit ? " LIMIT $offset, $limit" : "");
 
-		// Execute the main query to fetch articles
-		$articles = DB::instance()->query($SQL)->fetchAll(PDO::FETCH_ASSOC);
+        // Execute the main query to fetch articles
+        $articles = DB::instance()->query($SQL)->fetchAll(PDO::FETCH_ASSOC);
 
-		// Return the articles, total pages, and total results
-		return [
-			'articles' => $articles,
-			'totalPages' => $totalPages,
-			'totalResults' => $totalCount
-		];
-	}
+        // Return the articles, total pages, and total results
+        return [
+            'articles' => $articles,
+            'totalPages' => $totalPages,
+            'totalResults' => $totalCount
+        ];
+    }
 
-    
-    function fetchOne($columns = ["id", "title", "data", "slug", "post_date", "update_date"], $id = null)
+
+    function fetchOne($columns = ["id", "title", "users.name", "data", "slug", "post_date", "update_date"], $id = null)
     {
 
-        $SQL = "SELECT " . implode(",", array_map(function ($item) {
-            if (strpos($item, "users.") === 0) {
-                return str_replace("users.", "B.", $item);
-            }
-            return "A.{$item}";
-        }, $columns)) . " FROM articles A LEFT JOIN users B ON A.author = B.id WHERE A.id = ? ORDER BY `post_date` DESC";
+        $SQL = "SELECT " .
+
+            implode(",", array_map(function ($item) {
+                if (strpos($item, "users.") === 0) {
+                    return (str_replace("users.", "B.", $item) . " as user_" . preg_replace("/^\w+\./", "", $item));
+                }
+                return "A.{$item}";
+            }, $columns)) .
+
+            " FROM articles A LEFT JOIN users B ON A.author = B.id WHERE A.id = ? ORDER BY `post_date` DESC";
 
         $stmt = DB::instance()->prepare($SQL);
         $stmt->execute([$id]);
@@ -139,7 +171,7 @@ class Service extends __Fragment
             throw new \Exception('Permission denied');
         }
 
-        $user = Box::module("Auth")->getLogedinUser();
+        $user = Box::module("Auth")->Session->getUser();
         if (!$user || !isset($user['id'])) {
             throw new \Exception('User not found', 404);
         }
@@ -256,7 +288,7 @@ class Service extends __Fragment
         if (!$this->module->getRoles()->isAllowed(1)) {
             throw new \Exception('Permission denied');
         }
-        
+
         $SQL = "DELETE FROM articles WHERE id = ?";
         $stmt = DB::instance()->prepare($SQL);
         return $stmt->execute([$id]);

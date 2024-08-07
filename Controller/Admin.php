@@ -18,7 +18,7 @@ class Admin extends __Controller
             return;
         }
 
-        Router::GET("/article/create/", [$this, 'create']);
+        Router::GET("/article/create", [$this, 'create']);
         Router::GET("/article/edit/{id}", [$this, 'edit']);
         Router::GET("/article/view/{id}", [$this, 'view']);
         $index = Router::GET("/article", [$this, 'index']);

@@ -278,7 +278,7 @@ function QuickEdit(article: any) {
         }
 
         __.http.post(endpoints.update, update_article).then((res) => {
-            if (res.code === 200) {
+            if (res.status) {
                 __.toast("Article updated", 5, 'text-success');
                 MArticle.render();
             } else {
@@ -312,7 +312,7 @@ function ConfirmDelete(article: any) {
 
             __.http.post(endpoints.delete, { id: article.id }).then((res) => {
 
-                if (res.code == 200) {
+                if (res.status) {
                     __.toast("Article deleted", 5, 'text-success');
                     MArticle.render();
                 } else {

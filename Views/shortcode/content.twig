@@ -1,0 +1,13 @@
+{% set article = _box.Article.fetchOne({id: request.article_id()}) %}
+
+{% block content %}     
+<section>
+    <header class="mb-3">
+        <h1>{{article.title|title}}</h1>
+        <small>{{article.post_date|date("d F Y, H:i T")|upper}} by {{article.user_name}}</small>
+    </header>
+    <article>
+        {{_box.Editor.Blocks.render(article.data.components)|raw}}
+    </article>
+</section>
+{% endblock %}

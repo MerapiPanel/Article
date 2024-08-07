@@ -1,0 +1,32 @@
+{% set data = _box.Article.fetchAll %}
+{% set route = _box.Website.Pages.getpop({name: "Article/one"}).route %}
+
+{% if not _box.Article.getCheckRouteParams(route, ["article_slug", "article_id"]) %}
+{% set route = false %}
+{% endif %}
+
+
+{% block content %}
+<div class="row py-5">
+    {% for item in data.articles %}
+    <div class="col-12 col-lg-4">
+        <section class="shadow-sm p-4 text-primary">
+            <header class="mb-2">
+                <div class="fw-semibold fs-4">{{item.title|title}}</div>
+                <small>{{item.post_date|date("d F Y, H:i T")|upper}}</small>
+            </header>
+            <article>
+                <p>{{item.description|length?item.description:'<span class="text-muted">No Description</span>'}}</p>
+            </article>
+            {% if route %}
+            <a href="{{route|replace({'{article_id}': item.id, '{article_slug}': item.slug})}}">read more</a>
+            {% else %}
+            <small class="text-warning">invalid param route, make sure page route has article_id and article_slug params</small>
+            {% endif %}
+        </section>
+    </div>
+    {% else %}
+    <div class="fs-2 fw-semibold text-center py-5">no articles yet</div>
+    {% endfor %}
+</div>
+{% endblock %}
